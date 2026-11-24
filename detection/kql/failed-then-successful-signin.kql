@@ -1,0 +1,22 @@
+// Title: Many failed sign-ins followed by a success (same user and IP)
+// Table: SigninLogs (Microsoft Entra ID)
+// ATT&CK: T1110 Brute Force (T1110.003 Password Spraying), T1078 Valid Accounts
+// Severity: Medium (High if the user is privileged)
+// Notes: Tune `threshold` and exclude known corporate egress IPs / service accounts.
+//        A success after many failures from the same IP suggests the guess worked.
+let lookback = 1d;
+let threshold = 10;
+let failures = SigninLogs
+    | where TimeGenerated > ago(lookback)
+    | where ResultType != "0"
+    | summarize Failures = count(), LastFailure = max(TimeGenerated) by UserPrincipalName, IPAddress
+    | where Failures >= threshold;
+let successes = SigninLogs
+    | where TimeGenerated > ago(lookback)
+    | where ResultType == "0"
+    | project UserPrincipalName, IPAddress, SuccessTime = TimeGenerated, AppDisplayName;
+failures
+| join kind=inner successes on UserPrincipalName, IPAddress
+| where SuccessTime > LastFailure
+| project UserPrincipalName, IPAddress, Failures, LastFailure, SuccessTime, AppDisplayName
+| sort by Failures desc

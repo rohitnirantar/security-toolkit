@@ -1,0 +1,28 @@
+title: Certutil Used to Download a File
+id: def2c688-e6de-415c-96e1-0a8b34b89075
+status: experimental
+description: >
+  Detects certutil.exe being used with the urlcache option and a URL, a living-off-the-land
+  technique for downloading files from the internet while avoiding obvious download tools.
+references:
+  - https://attack.mitre.org/techniques/T1105/
+  - https://lolbas-project.github.io/lolbas/Binaries/Certutil/
+author: Rohit Nirantar
+date: 2026/11/23
+tags:
+  - attack.command_and_control
+  - attack.t1105
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection_image:
+    Image|endswith: '\certutil.exe'
+  selection_cli:
+    CommandLine|contains|all:
+      - 'urlcache'
+      - 'http'
+  condition: selection_image and selection_cli
+falsepositives:
+  - Rare administrative use of certutil to fetch certificates or CRLs from internal servers
+level: high
